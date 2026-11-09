@@ -1,7 +1,6 @@
 # TrustVault – Secure Document Sharing with a Real Audit Trail
 
 TrustVault is an enterprise document security and access governance platform built on three non-negotiable security tenets:
-
 1. **A document is reachable only by someone who was granted it.** The server decides on every request. Client-side state, UI visibility, and direct URL tampering cannot bypass authorization.
 2. **You can prove who reached it.** The audit trail is immutable, tamper-evident, continuously hash-chained (SHA-256), protected by database abort triggers, and forensically records both authorized events and refused attempts.
 3. **Taking access away works immediately.** Revoking a collaborator's access or deactivating a user account terminates downstream capability synchronously at $T+0\text{ms}$.
@@ -180,3 +179,5 @@ As documented in detail in `PROMPTS.md`:
 | **2:30 - 3:30** | **AI Access Advisor with Human Confirmation** | Switch back to Owner. Open "Manage Permissions". Click "Consult AI". The AI analyzes the document category and suggests Sneha Reddy under least-privilege READ access. The Owner reviews the suggestion, stages the grant, and confirms the save. |
 | **3:30 - 4:15** | **Authorized Access & Instant Revocation** | Switch back to Viewer. The document now appears in "Shared With Me". Viewer downloads the document. Switch back to Owner and click "Revoke". Viewer refreshes and attempts another download: access is immediately blocked at $T+0\text{ms}$. |
 | **4:15 - 5:00** | **Audit Trail Immutability & Test Suite** | Show the unbroken audit trail recording the upload, refused attempt, AI suggestion, human confirmation, authorized download, and instant revocation. Run `python3 tests/test_trustvault_security.py` showing all 13 security tests passing. |
+# TrustVault
+Secure document sharing and audit trail platform
