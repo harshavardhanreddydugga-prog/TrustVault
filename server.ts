@@ -13,6 +13,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Initialize SQLite database schema, unique constraints, and Super Admin account
 initDatabase();
@@ -26,7 +27,7 @@ app.use('/api', apiRouter);
 
 // Development vs Production serving
 async function startServer() {
-  const isDev = process.env.NODE_ENV !== 'production';
+  const isDev = process.env.NODE_ENV !== 'production' && !process.env.VERCEL;
 
   if (isDev) {
     const vite = await createViteServer({
@@ -41,8 +42,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[TrustVault] Server active at http://0.0.0.0:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`[TrustVault] Server active at http://${HOST}:${PORT}`);
   });
 }
 
