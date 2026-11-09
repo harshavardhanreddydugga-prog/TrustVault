@@ -9,4 +9,13 @@ coverage/
 data/*.db-shm
 data/*.db-wal
 data/*.db-journal
+# Environment secrets
+.env
+.env.*
+!.env.example
 
+# Local database files
+data/*.db
+data/*.db-*
+data/*.sqlite
+data/*.sqlite3
