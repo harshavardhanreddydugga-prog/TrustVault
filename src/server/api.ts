@@ -87,92 +87,127 @@ export const requireAdmin = (req: AuthenticatedRequest, res: Response, next: Nex
    ========================================================================== */
 
 // POST /api/auth/register - Unique Email Registration with strict normalization
+
 apiRouter.post('/auth/register', (req: Request, res: Response) => {
   try {
-    const { name, email, department, role, password } = req.body;
+    const { name, email, department, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
-    }
-
-    // 1. Normalize email: trim and lowercase
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) {
-      return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
-    }
-
-    // 2. Check for duplicate email in database before creating account
-    const existing = db.prepare('SELECT id, email FROM Users WHERE email = ?').get(normalizedEmail);
-    if (existing) {
-      // Exactly as specified in Section 1
-      return res.status(400).json({ 
-        success: false, 
-        message: 'This email address is already registered. Please log in.' 
+    if (
+      typeof name !== 'string' ||
+      typeof email !== 'string' ||
+      typeof password !== 'string' ||
+      !name.trim() ||
+      !email.trim() ||
+      !password
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required.'
       });
     }
 
-    // 3. Super Administrator assignment rule:
-    // Only the configured ADMIN_EMAIL receives the Super Administrator role.
-    let assignedRole: 'admin' | 'owner' | 'viewer';
+    const normalizedEmail = email.trim().toLowerCase();
 
-    if (isAdminEmail(normalizedEmail)) {
-      assignedRole = 'admin';
-    } else {
-      // Normal users must NEVER be able to select or assign themselves the administrator role
-      assignedRole = (role === 'viewer') ? 'viewer' : 'owner';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address.'
+      });
     }
 
-    // 4. Secure password hashing with cryptographic salt
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long.'
+      });
+    }
+
+    // The configured Super Admin cannot register through this route.
+    if (isAdminEmail(normalizedEmail)) {
+      return res.status(403).json({
+        success: false,
+        message: 'This administrator account must be provisioned securely.'
+      });
+    }
+
+    const existing = db.prepare(
+      'SELECT id FROM Users WHERE email = ?'
+    ).get(normalizedEmail);
+
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: 'This email address is already registered. Please log in.'
+      });
+    }
+
+    // Public registration always creates a Viewer.
+    const assignedRole: 'viewer' = 'viewer';
+
     const { hash, salt } = hashPassword(password);
+
     const userId = `user_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+
     const now = new Date().toISOString();
 
+    const cleanName = name.trim();
+    const cleanDepartment =
+      typeof department === 'string' && department.trim()
+        ? department.trim()
+        : 'General Operations';
+
     db.prepare(`
-      INSERT INTO Users (id, email, name, password_hash, salt, role, department, title, is_active, created_at)
+      INSERT INTO Users (
+        id, email, name, password_hash, salt,
+        role, department, title, is_active, created_at
+      )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
     `).run(
       userId,
       normalizedEmail,
-      name.trim(),
+      cleanName,
       hash,
       salt,
       assignedRole,
-      department?.trim() || 'General Operations',
-      assignedRole === 'admin' ? 'Super Administrator' : `${department || 'Enterprise'} Specialist`,
+      cleanDepartment,
+      'Viewer',
       now
     );
 
-    // 5. Audit log
     insertAuditLog({
       userId,
-      userName: name.trim(),
+      userName: cleanName,
       action: 'User Registered',
       documentId: 'user_auth',
       documentName: 'Identity Credential',
       ipAddress: req.ip,
-      details: `Registered account with ${assignedRole.toUpperCase()} clearance in ${department || 'General'}`,
+      details: 'Registered public account with VIEWER clearance',
       status: 'success'
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: 'Registration successful. Please log in with your credentials.',
+      message: 'Registration successful. Please log in.',
       email: normalizedEmail,
       role: assignedRole
     });
+
   } catch (err: any) {
     console.error('Registration error:', err);
-    if (err.message && err.message.includes('UNIQUE constraint failed')) {
-      return res.status(400).json({ success: false, message: 'This email address is already registered. Please log in.' });
+
+    if (err.message?.includes('UNIQUE constraint failed')) {
+      return res.status(409).json({
+        success: false,
+        message: 'This email address is already registered.'
+      });
     }
-    res.status(500).json({ success: false, message: 'Server error during registration.' });
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during registration.'
+    });
   }
 });
 

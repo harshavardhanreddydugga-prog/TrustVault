@@ -17,20 +17,18 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 // Configured Super Administrator Email
+
 export const getAdminEmail = (): string => {
-  return (process.env.ADMIN_EMAIL || 'harshavdugga@gmail.com').toLowerCase().trim();
+  return (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
 };
 
 export const isAdminEmail = (email: string): boolean => {
   const norm = email.trim().toLowerCase();
   const configured = getAdminEmail();
-  return (
-    norm === configured ||
-    norm === 'harshavdugga@gmail.com' ||
-    norm === 'harshavdugga' ||
-    norm === 'admin@trustvault.internal'
-  );
+
+  return configured !== '' && norm === configured;
 };
+
 
 // Password hashing utility with PBKDF2 and cryptographically secure random salt
 export const hashPassword = (password: string, existingSalt?: string): { hash: string; salt: string } => {

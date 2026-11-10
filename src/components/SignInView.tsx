@@ -371,11 +371,12 @@ export const SignInView: React.FC<SignInViewProps> = () => {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
+                {import.meta.env.DEV && (
                   <button
                     type="button"
                     onClick={() => {
-                      setLoginEmail('harshavdugga@gmail.com');
-                      setLoginPassword('Harsha@1122');
+                      setLoginEmail(import.meta.env.VITE_LOCAL_ADMIN_EMAIL || '');
+                      setLoginPassword(import.meta.env.VITE_LOCAL_ADMIN_PASSWORD || '');
                       setLoginError('');
                     }}
                     className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer shadow-2xs"
@@ -383,6 +384,7 @@ export const SignInView: React.FC<SignInViewProps> = () => {
                     <Shield className="w-3.5 h-3.5 text-blue-600" />
                     <span>Admin</span>
                   </button>
+                )}
                   <button
                     type="button"
                     onClick={() => {
